@@ -1,16 +1,20 @@
-import java.io.IOException;
+import model.ClientOne;
+import model.DateConnection;
+import model.ManagerMessages;
+
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class ServerChat extends Thread{
 
-    private ServerSocket serverSocket;
+    private final ServerSocket serverSocket;
     private Socket socket;
-    private final int port;
     private boolean running;
 
     public ServerChat() throws IOException {
-        this.port = 12345;
+        int port = 12345;
         this.running = true;
         this.serverSocket = new ServerSocket(port);
     }
@@ -19,16 +23,43 @@ public class ServerChat extends Thread{
         conecting();
     }
 
+    /*public void entranceBridge() throws IOException {
+        DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
+        System.out.println(dataInputStream.readUTF());
+    }*/
+
     public void conecting(){
         System.out.println("Chat-Java...");
         try {
+            String idCLient, ip, message;
+
+            DateConnection dateConnection;
+
             while (running) {
+
                 System.out.println("Esperando conexion ...");
                 socket = serverSocket.accept();
-                System.out.println("Se conectó : " + socket.getInetAddress().getHostName());
+                ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream());
+                dateConnection = (DateConnection) objectInputStream.readObject();
+                idCLient = dateConnection.getIdClient();
+                ip = dateConnection.getIp();
+                message = dateConnection.getMessage();
+
+                System.out.println(idCLient +" " + ip +" " + message);
+
+                Socket sendInfo = new Socket(ip,4321);
+
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(sendInfo.getOutputStream());
+                objectOutputStream.writeObject(dateConnection);
+
+                objectOutputStream.close();
+
+                DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
+                dataOutputStream.writeUTF("Conexion aceptada: " + socket.getInetAddress().getHostName());
             }
-        }catch (IOException e){
-            System.out.println("Error de conexion: " + socket.getInetAddress().getHostName());
+            serverSocket.close();
+        }catch (IOException | ClassNotFoundException e){
+            System.out.println("Error de conexion: " + socket.getInetAddress().getCanonicalHostName());
         }
     }
 
